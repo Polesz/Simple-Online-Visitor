@@ -1,5 +1,4 @@
 <?php
-
 defined('is_running') or die('Not an entry point...');
 
 class OnlineVisitor {
@@ -72,8 +71,9 @@ class OnlineVisitor {
 		return false;
 	}
 
-	function OnlineVisitor() {
+	function OnlineVisitor(){
 		global $langmessage, $addonPathData;
+		$currentTime = time();
 		$VisitorData = array();
 		$BotData = array();
 		$VisitorCount = 0;
@@ -81,28 +81,24 @@ class OnlineVisitor {
 		$VisitorDataFile = $addonPathData . "/Visitor.php";
 		$BotDataFile = $addonPathData . "/bot.php";
 		$sessionTime = 30*60; // time in seconds (30 minutes)
+		$VisitorIP = $_SERVER['REMOTE_ADDR'];
 		if( file_exists($VisitorDataFile) ){ require( $VisitorDataFile ); }
 		if( file_exists($BotDataFile) ){ require( $BotDataFile ); }
-		$VisitorIP = $_SERVER['REMOTE_ADDR'];
-		if( OnlineVisitor::DetectBot($_SERVER['HTTP_USER_AGENT']) ){
+		if( self::DetectBot($_SERVER['HTTP_USER_AGENT']) ){
 			// clean Bot table
-			foreach( $BotData as $ip => $lastTime ){
-				if( time() - $lastTime >= $sessionTime ){ unset($BotData[$ip]); }
-				// save new Bot table
-				$BotData[$VisitorIP] = time();
-				gpFiles::SaveArray($BotDataFile, 'BotData', $BotData);
-			}
-			//  Bot count
+			foreach( $BotData as $ip => $lastTime )
+				if( ($currentTime - $lastTime) >= $sessionTime ) unset($BotData[$ip]);
+			// save new Bot table
+			$BotData[$VisitorIP] = $currentTime;
+			gpFiles::SaveArray($BotDataFile, 'BotData', $BotData);
 			$BotCount = count($BotData);
 		}else{
 			// clean Visitor table
-			foreach( $VisitorData as $ip => $lastTime ){
-				if( time() - $lastTime >= $sessionTime ){ unset($VisitorData[$ip]); }
-				// save new Visitor table
-				$VisitorData[$VisitorIP] = time();
-				gpFiles::SaveArray($VisitorDataFile, 'VisitorData', $VisitorData);
-			}
-			//  Visitor count
+			foreach( $VisitorData as $ip => $lastTime )
+				if( ($currentTime - $lastTime) >= $sessionTime ) unset($VisitorData[$ip]);
+			// save new Visitor table
+			$VisitorData[$VisitorIP] = time();
+			gpFiles::SaveArray($VisitorDataFile, 'VisitorData', $VisitorData);
 			$VisitorCount = count($VisitorData);
 		}
 		echo "<div id='online_visitor' class='online_visitor'>";
