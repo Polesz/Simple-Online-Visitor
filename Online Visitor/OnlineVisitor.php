@@ -1,9 +1,17 @@
 <?php
 defined('is_running') or die('Not an entry point...');
 
-class OnlineVisitor {
+class OnlineVisitor{
+	
+	public static $data_dir;
+	
+	function __construct(){
+			global $addonPathData;
+			self::$data_dir = $addonPathData;
+			$this->OnlineVisitor();
+	}
 
-	function DetectBot($AGENT) {
+	function DetectBot($AGENT){
 		// botlist: http://www.blackhatworld.com/blackhat-seo/black-hat-seo/335475-complete-spiders-crawlers-bots-control-script-redirect-where-you-want.html
 		$BotList = array("Teoma", "alexa", "froogle", "Gigabot", "inktomi","looksmart",
 			"URL_Spider_SQL", "Firefly", "NationalDirectory","Ask Jeeves", "TECNOSEEK",
@@ -72,14 +80,21 @@ class OnlineVisitor {
 	}
 
 	function OnlineVisitor(){
-		global $langmessage, $addonPathData;
+		global $langmessage;
 		$currentTime = time();
 		$VisitorData = array();
 		$BotData = array();
 		$VisitorCount = 0;
 		$BotCount = 0;
-		$VisitorDataFile = $addonPathData . "/Visitor.php";
-		$BotDataFile = $addonPathData . "/bot.php";
+		$VisitorDataFile = self::$data_dir . '/Visitor.php';
+		$BotDataFile = self::$data_dir . '/bot.php';
+		$file = self::$data_dir.'/textarea.php';
+		if( file_exists($file) ){
+				$textarea = gpFiles::Get($file,'textarea');
+		}else {
+				$textarea = array('text' => '<div class="online_visitor">{visitors} visitors and {bots} bot online currently</div>');
+				gpFiles::SaveData($file, 'textarea', $textarea);
+		}
 		$sessionTime = 30*60; // time in seconds (30 minutes)
 		$VisitorIP = $_SERVER['REMOTE_ADDR'];
 		if( file_exists($VisitorDataFile) ){ require( $VisitorDataFile ); }
@@ -101,8 +116,8 @@ class OnlineVisitor {
 			gpFiles::SaveArray($VisitorDataFile, 'VisitorData', $VisitorData);
 			$VisitorCount = count($VisitorData);
 		}
-		echo "<div id='online_visitor' class='online_visitor'>";
-		printf(gpOutput::SelectText('%d Visitors and %d robots online currently'), $VisitorCount, $BotCount);
-		echo "</div>";
+		$order = array('{visitors}','{bots}');
+		$text = str_replace($order,array($VisitorCount,$BotCount),$textarea['text']);
+		echo $text;
 	}
 }

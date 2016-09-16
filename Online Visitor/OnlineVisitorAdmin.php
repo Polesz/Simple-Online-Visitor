@@ -26,7 +26,9 @@ class OnlineVisitorAdmin {
 		}
 	  if( file_exists($file) ){
 				$textarea = gpFiles::Get($file,'textarea');
-		}
+	  }else{
+		  $textarea = array('text' => '<div class="online_visitor">{visitors} visitors and {bots} bot online currently</div>');
+	  }
 		echo '<div>';
 		echo '<h3>'.$langmessage['Editable area'].'</h3>';
 		echo '<form method="post" action="'.common::GetUrl($title).'">';
