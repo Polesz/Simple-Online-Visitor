@@ -3,17 +3,22 @@ defined('is_running') or die('Not an entry point...');
 
 class OnlineVisitor{
 	
-	public static $data_dir;
+	public static $ovTemplateFile;
+	public static $ovVisitorsFile;
+	public static $ovBotsFile;
+	public static $ovSessionTime = 30*60; // time in seconds (30 minutes)
 	
 	function __construct(){
 			global $addonPathData;
-			self::$data_dir = $addonPathData;
+			self::$ovTemplateFile 	= $addonPathData.'/template.php';
+			self::$ovVisitorsFile	= $addonPathData.'/visitor.php';
+			self::$ovBotsFile		= $addonPathData.'/bot.php';
 			$this->OnlineVisitor();
 	}
 
 	function DetectBot($AGENT){
 		// botlist: http://www.blackhatworld.com/blackhat-seo/black-hat-seo/335475-complete-spiders-crawlers-bots-control-script-redirect-where-you-want.html
-		$BotList = array("Teoma", "alexa", "froogle", "Gigabot", "inktomi","looksmart",
+		$botList = array("Teoma", "alexa", "froogle", "Gigabot", "inktomi","looksmart",
 			"URL_Spider_SQL", "Firefly", "NationalDirectory","Ask Jeeves", "TECNOSEEK",
 			"InfoSeek", "WebFindBot", "girafabot", "crawler", "www.galaxy.com", "Googlebot",
 			"Scooter", "Slurp","msnbot", "appie", "FAST", "WebBug", "Spade", "ZyBorg", "rabaz",
@@ -73,51 +78,62 @@ class OnlineVisitor{
 			"Wget", "whatUseek Winona", "WhoWhere Robot", "Wired Digital", "Weblog Monitor", "w3mir",
 			"WebStolperer", "The Web Wombat", "The World Wide Web Worm", "WWWC Ver 0.2.5", "WebZinger",
 			"XGET", "Jakarta Commons-HttpClient/3.0", "Moreoverbot/5.1", "Faceboot");
-		foreach( $BotList as $bot ) {
+		foreach( $botList as $bot ) {
 			if( strpos($bot, $AGENT) ){ return $bot; }
 		}
 		return false;
 	}
+	
+	function OldVersion(){
+		global $config;
+		if( isset($config['customlang']['%d Visitors and %d robots online currently']) ){
+			$string = $config['customlang']['%d Visitors and %d robots online currently'];
+			$string = preg_replace('/%d/', '{visitors}', $string, 1);
+			$string = preg_replace('/%d/', '{bots}',     $string, 1);
+		}else{
+			$string = '{visitors} Visitors and {bots} robots online currently';
+		}
+		$ovTemplateHTML = array('html'=>'<div class="online_visitor">'.$string.'</div>');
+		gpFiles::SaveData(self::$ovTemplateFile, 'ovTemplateHTML', $ovTemplateHTML);
+		return $ovTemplateHTML;
+	}
 
 	function OnlineVisitor(){
 		global $langmessage;
-		$currentTime = time();
-		$VisitorData = array();
-		$BotData = array();
-		$VisitorCount = 0;
-		$BotCount = 0;
-		$VisitorDataFile = self::$data_dir . '/Visitor.php';
-		$BotDataFile = self::$data_dir . '/bot.php';
-		$file = self::$data_dir.'/textarea.php';
-		if( file_exists($file) ){
-				$textarea = gpFiles::Get($file,'textarea');
+		$visitorArray	= array();
+		$botArray		= array();
+		$visitorsCount	= 0;
+		$botCount		= 0;
+		$currentTime	= time();
+		$visitorIP		= $_SERVER['REMOTE_ADDR'];
+
+		if( file_exists(self::$ovTemplateFile) ){
+			$ovTemplateHTML = gpFiles::Get(self::$ovTemplateFile,'ovTemplateHTML');
 		}else {
-				$textarea = array('text' => '<div class="online_visitor">{visitors} visitors and {bots} bot online currently</div>');
-				gpFiles::SaveData($file, 'textarea', $textarea);
+			$ovTemplateHTML = $this->OldVersion();
 		}
-		$sessionTime = 30*60; // time in seconds (30 minutes)
-		$VisitorIP = $_SERVER['REMOTE_ADDR'];
-		if( file_exists($VisitorDataFile) ){ require( $VisitorDataFile ); }
-		if( file_exists($BotDataFile) ){ require( $BotDataFile ); }
-		if( self::DetectBot($_SERVER['HTTP_USER_AGENT']) ){
-			// clean Bot table
-			foreach( $BotData as $ip => $lastTime )
-				if( ($currentTime - $lastTime) >= $sessionTime ) unset($BotData[$ip]);
-			// save new Bot table
-			$BotData[$VisitorIP] = $currentTime;
-			gpFiles::SaveArray($BotDataFile, 'BotData', $BotData);
-			$BotCount = count($BotData);
+		if( file_exists($ovVisitorsFile) ){
+			$visitorArray = gpFiles::Get(self::$ovVisitorsFile,'visitorArray');
+		}
+		if( file_exists($ovBotsFile) ){
+			$botArray = gpFiles::Get(self::$ovBotsFile,'botArray');
+		}
+		if( $this->DetectBot($_SERVER['HTTP_USER_AGENT']) ){
+			foreach( $botArray as $ip => $lastTime ){
+				if( ($currentTime - $lastTime) >= self::$ovSessionTime ){ unset($botArray[$ip]); }
+			}
+			$botArray[$visitorIP] = $currentTime;
+			gpFiles::SaveArray(self::$ovBotsFile, 'botArray', $botArray);
+			$botCount = count($botArray);
 		}else{
-			// clean Visitor table
-			foreach( $VisitorData as $ip => $lastTime )
-				if( ($currentTime - $lastTime) >= $sessionTime ) unset($VisitorData[$ip]);
-			// save new Visitor table
-			$VisitorData[$VisitorIP] = time();
-			gpFiles::SaveArray($VisitorDataFile, 'VisitorData', $VisitorData);
-			$VisitorCount = count($VisitorData);
+			foreach( $visitorArray as $ip => $lastTime ){
+				if( ($currentTime - $lastTime) >= self::$ovSessionTime ){ unset($visitorArray[$ip]); }
+			}
+			$visitorArray[$visitorIP] = $currentTime;
+			gpFiles::SaveArray(self::$ovVisitorsFile, 'visitorArray', $visitorArray);
+			$visitorCount = count($visitorArray);
 		}
-		$order = array('{visitors}','{bots}');
-		$text = str_replace($order,array($VisitorCount,$BotCount),$textarea['text']);
-		echo $text;
+		$ovHTML = str_replace(array('{visitors}','{bots}'), array($visitorCount, $botCount), $ovTemplateHTML['html']);
+		echo $ovHTML;
 	}
 }

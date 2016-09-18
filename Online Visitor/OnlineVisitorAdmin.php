@@ -1,43 +1,73 @@
 <?php
 defined('is_running') or die('Not an entry point...');
 
-$langmessage['Editable area'] = 'Editable area';
-
 class OnlineVisitorAdmin {
 	
-	public static $data_dir;
+	public static $ovTemplateFile;
 	
 	public function __construct() {
 			global $addonPathData;
-			self::$data_dir = $addonPathData;
+			self::$ovTemplateFile = $addonPathData.'/template.php';
 			$this->OnlineVisitorAdmin();
 	}
 	
-	public function OnlineVisitorAdmin(){
-	  global $langmessage,$title;
-	  $file = self::$data_dir.'/textarea.php';
-	  if( isset($_POST['save']) ){
-			$textarea = array('text' => $_POST['sovtext']);
-			if( !gpFiles::SaveData($file, 'textarea', $textarea) ){
-				msg('sikertelen mentés');
+	public function CheckOldVersion(){
+		global $config;
+		if( !isset($config['customlang']['%d Visitors and %d robots online currently']) ){
+			$ovTemplateHTML = array('html'=>'<div class="online_visitor">{visitors} visitors and {bots} robots online currently</div>');
+		}else{
+			echo '<p>Convert old string to editable html area: ';
+			$string = $config['customlang']['%d Visitors and %d robots online currently'];
+			$string = preg_replace('/%d/', '{visitors}', $string, 1);
+			$string = preg_replace('/%d/', '{bots}',     $string, 1);
+			$ovTemplateHTML = array('html'=>'<div class="online_visitor">'.$string.'</div>');
+			if( !gpFiles::SaveData(self::$ovTemplateFile, 'ovTemplateHTML', $ovTemplateHTML) ){
+				echo '<span style="color: red;">failed</span>';
 			}else{
-				msg('sikeres mentés');
+				echo '<span style="color: green;">successfull</span>';
+			}
+			echo '</p>';
+			unset( $config['customlang']['%d Visitors and %d robots online currently'] );
+			\gp\admin\Tools::SaveConfig();
+		}
+		return $ovTemplateHTML;
+	}
+	
+	public function OnlineVisitorAdmin(){
+		global $langmessage, $title;
+		if( isset($_POST['save']) ){
+			$ovTemplateHTML = array('html'=>$_POST['ovTextarea']);
+			if( gpFiles::SaveData(self::$ovTemplateFile, 'ovTemplateHTML', $ovTemplateHTML) ){
+				msg($langmessage['SAVED']);
+			}else{
+				msg($langmessage['OOPS']);
 			}
 		}
-	  if( file_exists($file) ){
-				$textarea = gpFiles::Get($file,'textarea');
-	  }else{
-		  $textarea = array('text' => '<div class="online_visitor">{visitors} visitors and {bots} bot online currently</div>');
-	  }
+		if( file_exists(self::$ovTemplateFile) ){
+			$ovTemplateHTML = gpFiles::Get(self::$ovTemplateFile,'ovTemplateHTML');
+		}else{
+			$ovTemplateHTML = $this->CheckOldVersion();
+		}
+		$string = htmlspecialchars($ovTemplateHTML['html']);
+		echo '<h1>Simple Online Visitor Admin Page - ver 2.0</h1>';
 		echo '<div>';
-		echo '<h3>'.$langmessage['Editable area'].'</h3>';
+		echo '<h3>Editable area</h3>';
 		echo '<form method="post" action="'.common::GetUrl($title).'">';
-		echo '<p><textarea name="sovtext" cols="80" rows="5">'.htmlspecialchars($textarea['text']).'</textarea></p>';
+		echo '<p><textarea name="ovTextarea" cols="80" rows="5">'.$string.'</textarea></p>';
 		echo '<input name="save" type="submit" class="btn btn-default" value="'.$langmessage['save'].'" />&nbsp;';
 		echo '<input name="reset" type="reset" value="'.$langmessage['cancel'].'" />&nbsp;';
-		echo '<input name="preview" type="button" value="'.$langmessage['preview'].'" />';		
 		echo '</form></div>';
-		echo '<hr />';
-		echo '<div><p>note:<br/>{visitors} and {bots} variable needed</p></div>';
+		echo '<h3>Variables</h3>';
+		echo '{visitors} - Visitors counter<br />{bots} - Bots counter<br />';
+		echo '<h3>Examples</h3>';
+		echo '<h4>Default:</h4><br />';
+		echo 'code:<pre>'.htmlspecialchars('<div class="online_visitor">{visitors} Visitors and {bots} robots online currently</div>').'</pre>';
+		echo 'result:<div class="online_visitor">5 Visitors and 2 robots online currently</div><br />';
+		echo '<h4>Red visitors and green bots count:</h4><br />';
+		echo 'code:<pre>'.htmlspecialchars('<div class="online_visitor"><span style="color: red;">{visitors}</span> Visitors and <span style="color: green;">{bots}</span> robots online currently</p></div>').'</pre>';
+		echo 'result:<div class="online_visitor"><span style="color: red;">5</span> Visitors and <span style="color: green;">2</span> robots online currently</p></div><br /><br />';
+		echo '<h4>Variable {bots} not defined:</h4><br />';
+		echo 'code:<pre>'.htmlspecialchars('<div class="online_visitor">{visitors} Visitors online currently</div>').'</pre>';
+		echo 'result:<div class="online_visitor">5 Visitors online currently</div>';
 	}
 }
