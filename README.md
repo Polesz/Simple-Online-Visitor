@@ -10,7 +10,7 @@ Variables:
 
 Example:
 
-<div class="online_visitor">{visitors} Visitors and {bots} robots online currently
+<code><div class="online_visitor">{visitors} Visitors and {bots} robots online currently</div></code>
 
 result:
 
