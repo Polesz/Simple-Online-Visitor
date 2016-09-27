@@ -1,6 +1,8 @@
 # Simple-Online-Visitor
 Typesetter CMS plugin
 
+2.0.1: ovSessionTime static variable problem (parse error)
+
 2.0 stable
 
 Variables:

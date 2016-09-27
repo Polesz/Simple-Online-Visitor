@@ -49,9 +49,10 @@ class OnlineVisitorAdmin {
 			$ovTemplateHTML = $this->CheckOldVersion();
 		}
 		$string = htmlspecialchars($ovTemplateHTML['html']);
-		echo '<h1>Simple Online Visitor Admin Page - ver 2.0</h1>';
-		echo '<div>';
+		echo '<h2>Simple Online Visitor Admin Page</h2>';
+		echo 'version 2.0.1';
 		echo '<h3>Editable area</h3>';
+		echo '<div>';
 		echo '<form method="post" action="'.common::GetUrl($title).'">';
 		echo '<p><textarea name="ovTextarea" cols="80" rows="5">'.$string.'</textarea></p>';
 		echo '<input name="save" type="submit" class="btn btn-default" value="'.$langmessage['save'].'" />&nbsp;';

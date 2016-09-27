@@ -6,7 +6,7 @@ class OnlineVisitor{
 	public static $ovTemplateFile;
 	public static $ovVisitorsFile;
 	public static $ovBotsFile;
-	public static $ovSessionTime = 30*60; // time in seconds (30 minutes)
+	public static $ovSessionTime = 1800; // time in seconds (30 minutes)
 	
 	function __construct(){
 			global $addonPathData;
