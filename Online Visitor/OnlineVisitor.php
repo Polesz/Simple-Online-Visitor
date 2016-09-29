@@ -112,10 +112,10 @@ class OnlineVisitor{
 		}else {
 			$ovTemplateHTML = $this->OldVersion();
 		}
-		if( file_exists($ovVisitorsFile) ){
+		if( file_exists(self::$ovVisitorsFile) ){
 			$visitorArray = gpFiles::Get(self::$ovVisitorsFile,'visitorArray');
 		}
-		if( file_exists($ovBotsFile) ){
+		if( file_exists(self::$ovBotsFile) ){
 			$botArray = gpFiles::Get(self::$ovBotsFile,'botArray');
 		}
 		if( $this->DetectBot($_SERVER['HTTP_USER_AGENT']) ){
